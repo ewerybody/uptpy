@@ -26,7 +26,7 @@ Cons:
   least a little.)
 * nothing concurrent yet (we could try downloading the manifest while scanning locally) (currently it all just took split seconds so there was no pressure yet)
 
-# hot to use
+# How to use
 `TBD`
 ## the fastest method
 
