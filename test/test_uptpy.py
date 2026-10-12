@@ -1,7 +1,8 @@
 """
-Testing `uptpy`. What to test:
+Testing `uptpy`.
+What to test:
 * delete files that are already deleted.
-* create folders in subfolders (making dir tree needs to work)
+* create folders in sub-folders (making dir tree needs to work)
 * simple file change
 * add and delete files
 * delete directory tree
@@ -10,20 +11,20 @@ Testing `uptpy`. What to test:
 * special characters in file and dir names
 """
 
-import os
-import sys
 import json
-import uuid
-import shutil
-import unittest
+import os
 import posixpath
+import shutil
 import subprocess
+import sys
+import unittest
+import uuid
 
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))
 TEST_DIR = os.path.join(THIS_DIR, 'local')
-CREDS_NAME = '_ test_creds.json'
-CREDS_FILE = os.path.join(THIS_DIR, CREDS_NAME)
-ERR_NEED_CREDS = 'Need credentials in file %s to perform tests!' % CREDS_FILE
+CREDENTIALS_NAME = '_ test_credentials.json'
+CREDENTIALS_FILE = os.path.join(THIS_DIR, CREDENTIALS_NAME)
+ERR_NEED_CREDENTIALS = f'Need credentials in file {CREDENTIALS_FILE} to perform tests!'
 DATA_JSON = 'data.json'
 
 
@@ -31,34 +32,34 @@ if __name__ == '__main__':
     parent_path = os.path.dirname(THIS_DIR)
     if parent_path not in sys.path:
         sys.path.append(parent_path)
-import uptpy  # noqa: E402
+import uptpy
 
 
 class Test(unittest.TestCase):
     def __init__(self, args):
-        super(Test, self).__init__(args)
-        if not os.path.isfile(CREDS_FILE):
-            self.skipTest(ERR_NEED_CREDS)
+        super().__init__(args)
+        if not os.path.isfile(CREDENTIALS_FILE):
+            self.skipTest(ERR_NEED_CREDENTIALS)
             return
 
         try:
-            with open(CREDS_FILE, encoding='utf8') as file_obj:
-                self.creds = json.load(file_obj)
+            with open(CREDENTIALS_FILE, encoding='utf8') as file_obj:
+                self.credentials = json.load(file_obj)
         except json.JSONDecodeError as error:
             raise RuntimeError(
-                'Could not load test credentials from "%s"!\n %s' % (CREDS_NAME, error)
+                f'Could not load test credentials from "{CREDENTIALS_NAME}"!\n {error}'
             )
 
-        self._rp = self.creds['remote_path']
-        self._usr = self.creds['user']
-        self._pw = self.creds['passwd']
-        self._hst = self.creds['host']
-        self._test_creds = (self._hst, self._usr, self._pw)
+        self._rp = self.credentials['remote_path']
+        self._usr = self.credentials['user']
+        self._pw = self.credentials['passwd']
+        self._hst = self.credentials['host']
+        self._test_credentials = (self._hst, self._usr, self._pw)
         self._test_connection = (self._hst, self._usr, self._pw, TEST_DIR, self._rp)
 
-    def test_manitest(self):
+    def test_manifest(self):
         # self.skipTest('')
-        ftp = uptpy.get_ftp(*self._test_creds)[0]
+        ftp = uptpy.get_ftp(*self._test_credentials)[0]
         current = uptpy.load_manifest(ftp, self._rp)
 
         remote = uptpy.scan_remote(ftp, self._rp)
@@ -77,12 +78,12 @@ class Test(unittest.TestCase):
         self.skipTest('')
         name = 'delete.me'
         # prepare
-        ftp = uptpy.get_ftp(*self._test_creds)[0]
+        ftp = uptpy.get_ftp(*self._test_credentials)[0]
         self._ensure_deleted(ftp, self._rp, name)
 
         new_file = os.path.join(TEST_DIR, name)
-        with open(new_file, 'w', encoding='utf8') as fobj:
-            fobj.write('1337')
+        with open(new_file, 'w', encoding='utf8') as file_obj:
+            file_obj.write('1337')
 
         # sync
         uptpy.update(*self._test_connection)
@@ -113,32 +114,32 @@ class Test(unittest.TestCase):
         subdir2 = os.path.join(subdir, 'subdir2')
         os.mkdir(subdir2)
         for i in range(3):
-            subfile = os.path.join(subdir, 'file%i.txt' % i)
-            with open(subfile, 'w', encoding='utf8') as fobj:
-                fobj.write('chuckles')
-            subfile2 = os.path.join(subdir2, 'file%i.bin' % i)
-            with open(subfile2, 'wb') as fobj:
-                fobj.write(b'\x00\x00\x00')
+            subfile = os.path.join(subdir, f'file{i}.txt')
+            with open(subfile, 'w', encoding='utf8') as file_obj:
+                file_obj.write('chuckles')
+            subfile2 = os.path.join(subdir2, f'file{i}.bin')
+            with open(subfile2, 'wb') as file_obj:
+                file_obj.write(b'\x00\x00\x00')
 
         num_changes = uptpy.update(*self._test_connection)
 
-        ftp = uptpy.get_ftp(*self._test_creds)[0]
-        rthings = sorted(
+        ftp = uptpy.get_ftp(*self._test_credentials)[0]
+        r_things = sorted(
             os.path.relpath(i, self._rp)
             for i in ftp.nlst(self._rp)
             if not i.endswith('.')
         )
         ftp.close()
-        # lthings = sorted(i.name for i in os.scandir(TEST_DIR))
-        self.assertTrue(dirname in rthings)
-        self.assertEqual(len([i for i in rthings if i.startswith(prefix)]), 1)
+        # l_things = sorted(i.name for i in os.scandir(TEST_DIR))
+        self.assertTrue(dirname in r_things)
+        self.assertEqual(len([i for i in r_things if i.startswith(prefix)]), 1)
         self.assertNotEqual(num_changes, 0)
 
     def test_change(self):
         local_data = _change_local_data()
 
-        ftp = uptpy.get_ftp(*self._test_creds)[0]
-        uptpy.mkdirs(ftp, self._rp, '')
+        ftp = uptpy.get_ftp(*self._test_credentials)[0]
+        uptpy.mk_dirs(ftp, self._rp, '')
 
         remote_data1 = self._get_remote_data(ftp)
 
@@ -154,8 +155,8 @@ class Test(unittest.TestCase):
     def test_cli_change(self):
         local_data = _change_local_data()
 
-        ftp = uptpy.get_ftp(*self._test_creds)[0]
-        uptpy.mkdirs(ftp, self._rp, '')
+        ftp = uptpy.get_ftp(*self._test_credentials)[0]
+        uptpy.mk_dirs(ftp, self._rp, '')
 
         remote_data1 = self._get_remote_data(ftp)
 
@@ -176,12 +177,12 @@ class Test(unittest.TestCase):
         # e-acute `\u00e9` when using `utf8`, it works with `latin-1` tho!
         # but if you put smiley in names ONLY `utf8` encoding works :|
         smiley = '_\ud83e\udd17'.encode('utf-16', 'surrogatepass').decode('utf-16')
-        file_name = '_Str\u00ebu\u00dfel%sbr\u00f6tchen.txt' % smiley
+        file_name = f'_Str\u00ebu\u00dfel{smiley}br\u00f6tchen.txt'
         rel_path = posixpath.join(smiley, file_name)
         file_path = os.path.join(TEST_DIR, rel_path)
         content = _make_file(file_path)
 
-        ftp = uptpy.get_ftp(*self._test_creds)[0]
+        ftp = uptpy.get_ftp(*self._test_credentials)[0]
         uptpy.update(*self._test_connection, in_ftp=ftp)
 
         remote_content = uptpy.read_remote(ftp, posixpath.join(self._rp, rel_path))
@@ -198,14 +199,14 @@ class Test(unittest.TestCase):
                 os.unlink(path)
             self.assertFalse(os.path.isfile(path))
 
-        ftp = uptpy.get_ftp(*self._test_creds)[0]
+        ftp = uptpy.get_ftp(*self._test_credentials)[0]
         uptpy.update(*self._test_connection, in_ftp=ftp)
 
         content1 = _make_file(local_file1)
         content2 = _make_file(local_file2)
 
         uptpy._upload(ftp, rel_path1, TEST_DIR, self._rp)
-        uptpy.mkdirs(ftp, self._rp, 'IGNORE_SUBDIR')
+        uptpy.mk_dirs(ftp, self._rp, 'IGNORE_SUBDIR')
         uptpy._upload(ftp, rel_path2, TEST_DIR, self._rp)
 
         for path in local_file1, local_file2:
@@ -222,7 +223,7 @@ class Test(unittest.TestCase):
 
     def _ensure_deleted(self, ftp, remote_root, name):
         remote_path = posixpath.join(remote_root, name)
-        uptpy.mkdirs(ftp, remote_root)
+        uptpy.mk_dirs(ftp, remote_root)
         things = ftp.nlst(remote_root)
         if remote_path in things:
             ftp.delete(remote_path)
@@ -233,21 +234,21 @@ class Test(unittest.TestCase):
         try:
             content = uptpy.read_remote(ftp, posixpath.join(self._rp, DATA_JSON))
             return json.loads(content)
-        except Exception:
+        except Exception as error:
             return {}
 
 
 def _make_file(file_path, content=None):
     if os.path.isfile(file_path):
-        with open(file_path, encoding='utf8') as fobj:
-            return fobj.read()
+        with open(file_path, encoding='utf8') as file_obj:
+            return file_obj.read()
     dir_path = os.path.dirname(file_path)
     if not os.path.isdir(dir_path):
         os.makedirs(dir_path)
     if content is None:
         content = str(uuid.uuid4())
-    with open(file_path, 'w', encoding='utf8') as fobj:
-        fobj.write(content)
+    with open(file_path, 'w', encoding='utf8') as file_obj:
+        file_obj.write(content)
     return content
 
 
@@ -256,13 +257,13 @@ def _change_local_data():
     if not os.path.isfile(data_json):
         local_data = {'nothing': None}
     else:
-        with open(data_json, encoding='utf8') as fobj:
-            local_data = json.load(fobj)
-    local_data['random'] = str(uuid.uuid4())  # type: ignore
-    with open(data_json, 'w', encoding='utf8') as fobj:
-        json.dump(local_data, fobj)
+        with open(data_json, encoding='utf8') as file_obj:
+            local_data = json.load(file_obj)
+    local_data['random'] = str(uuid.uuid4())
+    with open(data_json, 'w', encoding='utf8') as file_obj:
+        json.dump(local_data, file_obj)
     return local_data
 
 
 if __name__ == '__main__':
-    unittest.main(verbosity=2)
+    unittest.main()
