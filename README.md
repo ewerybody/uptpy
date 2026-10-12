@@ -1,7 +1,7 @@
 # **uptpy** - compact Python FTP uploader
 
 When building with static site generators I'd like to push and see the result asap!
-How to do that? Usually uploaders shove all files that end up in the `public` directory and have no idea what was already up-to-date and what was renamed and can be deleted now.
+How to do that? Usually up-loaders shove all files that end up in the `public` directory and have no idea what was already up-to-date and what was renamed and can be deleted now.
 To mitigate the deletion problem you might push to a new directory and switch the online one with the new in an instant. But that still has the Uploading-all problem.
 
 So we need to know what actually has to be updated! For that we'll maintain a manifest file containing filenames and hashes for each
@@ -31,7 +31,7 @@ Cons:
 ## the fastest method
 
 * get a copy of `uptpy.py`
-* run it `python uptpy.py {HOSTURL} {USER} {PASSWD} {LOCAL_PATH} {REMOTE_PATH}`
+* run it `python uptpy.py {HOST_URL} {USER} {PASSWD} {LOCAL_PATH} {REMOTE_PATH}`
 
 For example with HUGO:
 ```
@@ -47,13 +47,13 @@ jobs:
         uses: peaceiris/actions-hugo@v2.6.0
 
       - name: FTP Deploy
-        run: python uptpy.py example-url.com ${{ secrets.USER }} ${{ secrets.PASSW }} public remote_subdir
+        run: python uptpy.py example-url.com ${{ secrets.USER }} ${{ secrets.PASSWD }} public remote_subdir
 ```
 Of course that'd require:
 * `uptpy.py` to be in the root
-* `example-url.com` replaced with the host adress for the FTP
+* `example-url.com` replaced with the host address for the FTP
 * `secrets.USER` to point to the user name in your projects secrets
-* `secrets.PASSW` to point to the password to be used with this user
+* `secrets.PASSWD` to point to the password to be used with this user
 * `public` would be the path to the output folder by HUGO
 * `remote_subdir` any folder on the FTP to put things under.
 
